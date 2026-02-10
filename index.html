@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Void</title>
+
+<style>
+body{
+background:black;
+color:#aaa;
+font-family:monospace;
+text-align:center;
+padding-top:120px;
+overflow:hidden;
+}
+
+textarea{
+width:70%;
+height:120px;
+background:black;
+color:#fff;
+border:1px solid #222;
+font-size:18px;
+padding:15px;
+outline:none;
+}
+
+button{
+margin-top:20px;
+padding:12px 30px;
+background:#050505;
+color:#888;
+border:1px solid #222;
+font-size:16px;
+letter-spacing:2px;
+cursor:pointer;
+}
+
+#lockScreen{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+z-index:9999;
+opacity:0;
+pointer-events:none;
+transition:opacity 2s;
+}
+
+#dissolveLayer{
+position:absolute;
+top:45%;
+left:50%;
+transform:translate(-50%,-50%);
+width:70%;
+text-align:center;
+pointer-events:none;
+font-size:22px;
+color:#fff;
+letter-spacing:2px;
+}
+
+.letter{
+display:inline-block;
+opacity:1;
+transition:transform 6s linear, opacity 6s linear, filter 6s linear;
+}
+
+.fly{
+opacity:0;
+transform:translateY(-140px) scale(1.8) rotate(20deg);
+filter:blur(6px);
+}
+
+.bgParticles{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:url('https://i.imgur.com/YKY28eT.png');
+opacity:0;
+pointer-events:none;
+animation:particleMove 18s linear forwards;
+}
+
+@keyframes particleMove{
+0%{opacity:0;}
+20%{opacity:.25;}
+60%{opacity:.5;}
+100%{opacity:0;}
+}
+
+#revealBox{
+display:none;
+margin-top:40px;
+white-space:pre-wrap;
+color:#ccc;
+padding:20px;
+border-top:1px solid #222;
+}
+</style>
+</head>
+
+<body>
+
+<h2 style="color:#666;font-weight:300;">write what you cannot tell anyone</h2>
+
+<textarea id="thought" placeholder="..."></textarea><br>
+<button onclick="dissolveThought()">DISSOLVE</button>
+
+<div id="dissolveLayer"></div>
+<div id="revealBox"></div>
+<div id="lockScreen"></div>
+
+<audio id="music">
+<source src="https://www.dropbox.com/scl/fi/dud2qh1ofoowl1g0nnazk/km_20260207_360p_30f_20260210_114730-mc.mp3?rlkey=jzftzlfl3pgbehvlaczz39cgb&raw=1" type="audio/mpeg">
+</audio>
+
+<script>
+function dissolveThought(){
+
+let box=document.getElementById("thought");
+let text=box.value.trim();
+let music=document.getElementById("music");
+let lock=document.getElementById("lockScreen");
+let layer=document.getElementById("dissolveLayer");
+
+if(text==="") return;
+
+// save start date
+if(!localStorage.getItem("startDate")){
+ localStorage.setItem("startDate", new Date().toISOString());
+}
+
+// save thought
+let thoughts=JSON.parse(localStorage.getItem("thoughts"))||[];
+thoughts.push({text:text,time:new Date().toISOString()});
+localStorage.setItem("thoughts",JSON.stringify(thoughts));
+
+// lock screen
+lock.style.opacity="1";
+lock.style.pointerEvents="all";
+document.body.style.overflow="hidden";
+
+// play music
+music.volume=.7;
+music.play();
+
+// particles
+let bg=document.createElement("div");
+bg.className="bgParticles";
+document.body.appendChild(bg);
+
+// convert text to letters
+layer.innerHTML="";
+for(let char of text){
+ let span=document.createElement("span");
+ span.innerText=char;
+ span.className="letter";
+ layer.appendChild(span);
+}
+
+// hide textarea text
+box.style.opacity="0";
+
+// start dissolve
+setTimeout(()=>{
+ let letters=document.querySelectorAll(".letter");
+ letters.forEach((l,i)=>{
+   setTimeout(()=>{
+     l.classList.add("fly");
+   }, i*80);
+ });
+},2000);
+
+// finish after 18s
+setTimeout(()=>{
+ layer.innerHTML="";
+ box.value="";
+ box.style.opacity="1";
+
+ lock.style.opacity="0";
+ lock.style.pointerEvents="none";
+ document.body.style.overflow="auto";
+
+ let fade=setInterval(()=>{
+ if(music.volume>0.05){music.volume-=0.05;}
+ else{music.pause();clearInterval(fade);}
+ },200);
+
+ bg.remove();
+
+},18000);
+}
+
+// ===== REVEAL AFTER 30 DAYS =====
+function checkReveal(){
+let start=localStorage.getItem("startDate");
+if(!start) return;
+
+let startDate=new Date(start);
+let now=new Date();
+let diffDays=Math.floor((now-startDate)/(1000*60*60*24));
+
+if(diffDays>=30){
+showReveal();
+}
+}
+checkReveal();
+
+function showReveal(){
+let thoughts=JSON.parse(localStorage.getItem("thoughts"))||[];
+let text=thoughts.map(t=>t.text).join("\n\n");
+
+let box=document.getElementById("revealBox");
+box.style.display="block";
+box.innerText="Your forgotten thoughts:\n\n"+text;
+
+if(!localStorage.getItem("revealTime")){
+localStorage.setItem("revealTime", new Date().toISOString());
+}
+
+startDeleteTimer();
+}
+
+function startDeleteTimer(){
+let revealTime=localStorage.getItem("revealTime");
+if(!revealTime) return;
+
+let opened=new Date(revealTime);
+let now=new Date();
+let diff=now-opened;
+let limit=24*60*60*1000;
+
+if(diff>=limit){
+localStorage.clear();
+location.reload();
+}else{
+setTimeout(()=>{
+localStorage.clear();
+location.reload();
+}, limit-diff);
+}
+}
+</script>
+
+</body>
+</html>
