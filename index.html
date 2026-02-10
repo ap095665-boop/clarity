@@ -179,71 +179,209 @@ setTimeout(()=>{
 // finish after 18s
 setTimeout(()=>{
  layer.innerHTML="";
- box.value="";
- box.style.opacity="1";
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Void</title>
 
- lock.style.opacity="0";
- lock.style.pointerEvents="none";
- document.body.style.overflow="auto";
+<style>
+html,body{
+margin:0;
+padding:0;
+background:black;
+font-family:monospace;
+height:100%;
+overflow:hidden;
+color:#aaa;
+}
 
- let fade=setInterval(()=>{
- if(music.volume>0.05){music.volume-=0.05;}
- else{music.pause();clearInterval(fade);}
- },200);
+/* center container */
+.container{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+width:90%;
+max-width:700px;
+text-align:center;
+}
 
- bg.remove();
+/* title */
+.title{
+color:#666;
+margin-bottom:25px;
+font-size:18px;
+letter-spacing:2px;
+}
+
+/* textarea */
+textarea{
+width:100%;
+height:180px;
+background:rgba(0,0,0,.6);
+border:1px solid #222;
+color:#fff;
+font-size:20px;
+padding:20px;
+outline:none;
+resize:none;
+}
+
+/* button */
+button{
+margin-top:25px;
+padding:14px 40px;
+background:black;
+color:#aaa;
+border:1px solid #333;
+font-size:15px;
+letter-spacing:3px;
+}
+
+/* dissolve layer */
+#dissolveLayer{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+width:90%;
+max-width:700px;
+font-size:24px;
+color:white;
+line-height:1.6;
+text-align:center;
+pointer-events:none;
+}
+
+/* each letter */
+.letter{
+display:inline-block;
+transition:all 8s linear;
+opacity:1;
+}
+
+/* flying dissolve */
+.fly{
+opacity:0;
+transform:translateY(-200px) scale(2) rotate(25deg);
+filter:blur(8px);
+}
+
+/* animated gradient background */
+.bg{
+position:fixed;
+width:200%;
+height:200%;
+top:-50%;
+left:-50%;
+background:radial-gradient(circle,#111 0%,black 60%);
+animation:bgmove 18s linear forwards;
+opacity:.6;
+z-index:-2;
+}
+
+@keyframes bgmove{
+0%{transform:scale(1);}
+50%{transform:scale(1.3);}
+100%{transform:scale(1.6);}
+}
+
+/* floating particles */
+.particles{
+position:fixed;
+width:100%;
+height:100%;
+background:url('https://i.imgur.com/YKY28eT.png');
+opacity:.25;
+animation:float 18s linear forwards;
+z-index:-1;
+}
+
+@keyframes float{
+0%{opacity:0;}
+20%{opacity:.25;}
+60%{opacity:.5;}
+100%{opacity:0;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="bg"></div>
+<div class="particles"></div>
+
+<div class="container">
+<div class="title">write what you cannot tell anyone</div>
+
+<textarea id="thought" placeholder="..."></textarea><br>
+<button onclick="dissolve()">DISSOLVE</button>
+</div>
+
+<div id="dissolveLayer"></div>
+
+<audio id="music">
+<source src="https://www.dropbox.com/scl/fi/dud2qh1ofoowl1g0nnazk/km_20260207_360p_30f_20260210_114730-mc.mp3?rlkey=jzftzlfl3pgbehvlaczz39cgb&raw=1" type="audio/mpeg">
+</audio>
+
+<script>
+function dissolve(){
+
+let box=document.getElementById("thought");
+let text=box.value.trim();
+if(text==="") return;
+
+let music=document.getElementById("music");
+let layer=document.getElementById("dissolveLayer");
+
+// save data
+if(!localStorage.getItem("startDate")){
+localStorage.setItem("startDate",new Date().toISOString());
+}
+let thoughts=JSON.parse(localStorage.getItem("thoughts"))||[];
+thoughts.push({text:text,time:new Date().toISOString()});
+localStorage.setItem("thoughts",JSON.stringify(thoughts));
+
+// start music
+music.volume=.7;
+music.play();
+
+// move text to dissolve layer
+layer.innerHTML="";
+for(let char of text){
+let span=document.createElement("span");
+span.innerText=char;
+span.className="letter";
+layer.appendChild(span);
+}
+
+// hide textarea
+box.value="";
+box.style.opacity=0;
+
+// start dissolve slowly
+setTimeout(()=>{
+let letters=document.querySelectorAll(".letter");
+letters.forEach((l,i)=>{
+setTimeout(()=>{
+l.classList.add("fly");
+},i*120);
+});
+},1000);
+
+// restore after 18 sec
+setTimeout(()=>{
+layer.innerHTML="";
+box.style.opacity=1;
+
+// fade music
+let fade=setInterval(()=>{
+if(music.volume>0.05){music.volume-=0.05;}
+else{music.pause();clearInterval(fade);}
+},200);
 
 },18000);
-}
-
-// ===== REVEAL AFTER 30 DAYS =====
-function checkReveal(){
-let start=localStorage.getItem("startDate");
-if(!start) return;
-
-let startDate=new Date(start);
-let now=new Date();
-let diffDays=Math.floor((now-startDate)/(1000*60*60*24));
-
-if(diffDays>=30){
-showReveal();
-}
-}
-checkReveal();
-
-function showReveal(){
-let thoughts=JSON.parse(localStorage.getItem("thoughts"))||[];
-let text=thoughts.map(t=>t.text).join("\n\n");
-
-let box=document.getElementById("revealBox");
-box.style.display="block";
-box.innerText="Your forgotten thoughts:\n\n"+text;
-
-if(!localStorage.getItem("revealTime")){
-localStorage.setItem("revealTime", new Date().toISOString());
-}
-
-startDeleteTimer();
-}
-
-function startDeleteTimer(){
-let revealTime=localStorage.getItem("revealTime");
-if(!revealTime) return;
-
-let opened=new Date(revealTime);
-let now=new Date();
-let diff=now-opened;
-let limit=24*60*60*1000;
-
-if(diff>=limit){
-localStorage.clear();
-location.reload();
-}else{
-setTimeout(()=>{
-localStorage.clear();
-location.reload();
-}, limit-diff);
-}
 }
 </script>
 
