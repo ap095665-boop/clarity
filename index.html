@@ -282,7 +282,16 @@ let content=document.getElementById("revealContent");
 let thoughts=JSON.parse(localStorage.getItem("thoughts"))||[];
 
 let text="";
-thoughts.forEach(t=>text+=t.text+"\n\n");
+
+thoughts.forEach(t=>{
+let d=new Date(t.time);
+
+let date=d.toLocaleDateString();
+let time=d.toLocaleTimeString();
+
+text += "🕒 " + date + "  " + time + "\n";
+text += t.text + "\n\n";
+});
 
 reveal.style.display="block";
 content.innerText=text;
